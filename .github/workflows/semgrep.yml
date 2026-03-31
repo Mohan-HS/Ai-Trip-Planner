@@ -1,0 +1,41 @@
+name: Semgrep SAST (GHAS-like)
+
+on:
+  pull_request:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep security audit
+        run: |
+          semgrep scan \
+            --config p/security-audit,p/ci \
+            --error \
+            --severity ERROR
+
+      - name: Upload Semgrep report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: .
+
+      - name: PR comments (inline annotations)
+        uses: reviewdog/action-semgrep@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
